@@ -2,7 +2,7 @@
 let isPressed = false;
 let p = document.getElementById("info");
 let ASPECT = window.innerWidth / window.innerHeight;
-let controls, ico, renderer, scene, camera;
+let controls, ico, renderer, scene, camera, axesHelper, sphere, sphere2;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
 let isActive = false;
@@ -13,15 +13,18 @@ function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, ASPECT, 0.1 , 1000 );
 
+    console.log(camera);
 
+    //renderer
     renderer = new THREE.WebGLRenderer();
-
     renderer.setSize ( window.innerWidth, window.innerHeight); // check with divided by 2!!!
     renderer.shadowMap.enabled = true;
     renderer.setClearColor( 0xfff6e6 );
 
-
     document.body.appendChild( renderer.domElement );
+
+    axesHelper = new THREE.AxesHelper(12);
+
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
 
@@ -34,8 +37,12 @@ function init() {
     });
     ico = new THREE.Mesh( geometry, mat );
 
-    ico.position.set(0, 0, -5);
+    ico.position.set(0, 0, 0);
     scene.add (ico);
+
+    // Uncomment to show axes in 3D
+    // scene.add(axesHelper);
+
     camera.position.z = 25;
 
 
@@ -52,7 +59,7 @@ function init() {
 
 
         const geometry2 = new THREE.SphereGeometry(0.7,10,10);
-        const sphere = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial( {
+         sphere = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial( {
 
             color: 0x0099ff,
             //wireframe: true
@@ -65,7 +72,7 @@ function init() {
         ico.add(sphere);
 
         const geometry3 = new THREE.SphereGeometry(2);
-        const sphere2 = new THREE.Mesh(geometry3, new THREE.MeshBasicMaterial({color: 0xFF1111}) );
+        sphere2 = new THREE.Mesh(geometry3, new THREE.MeshBasicMaterial({color: 0xFF1111}) );
         sphere2.material.transparent = true;
         sphere2.material.opacity = 0.1;
         sphere2.material.wireframe = true;
@@ -74,24 +81,57 @@ function init() {
         sphere2.scale.set(1,1,1);
         sphere2.position.copy(ico.geometry.vertices[i]);
 
+        console.log(sphere2); //test
+
         //sphere2.renderOrder = 1;
 
         ico.add(sphere2);
     }
 
-    document.addEventListener('mousedown', (e) => { isPressed = true; });
+    function mouseLocation(e){
+
+        mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+
+        return mouse;
+    }
+
+    document.addEventListener('mousedown', (e) => {
+
+        isPressed = true;
+        raycaster.setFromCamera( mouseLocation(e), camera );
+        let obj = raycaster.intersectObjects(ico.children);
+
+
+        if (obj.length > 1){
+
+            for(let i in obj){
+
+                if (obj[i].object.userData.type === "in"){
+
+                    obj = obj[i];
+                }
+            }
+
+
+            for(let i=0; i < obj.geometry.vertices.length; i++){
+
+                
+            }
+        }
+
+
+    });
 
     document.addEventListener('mouseup', () => { isPressed = false; });
 
 
     window.addEventListener('mousemove', (e) => {
 
-        mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
-        mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 
-        raycaster.setFromCamera( mouse.clone(), camera );
+        raycaster.setFromCamera( mouseLocation(e), camera );
 
-        const objects = raycaster.intersectObjects(ico.children); ///important
+        const objects = raycaster.intersectObjects(ico.children); ///important stuff
 
         let ids = [];
         if (objects.length>0){
@@ -140,9 +180,18 @@ function init() {
             }
         }
 
+    });
+
+    window.addEventListener('resize', () => {
+
+        camera.aspect = ASPECT;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize ( window.innerWidth, window.innerHeight);
 
 
     });
+
 }
 
 
@@ -154,7 +203,6 @@ function animate() {
         ico.rotation.x += 0.006;
     }
     
-
     controls.update();
     renderer.render( scene, camera );
 
